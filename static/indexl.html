@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>AI 이미지 전처리 파이프라인</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; }
+        .container { background: white; padding: 40px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .form-group { margin: 20px 0; }
+        button { background-color: #4CAF50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>이미지 처리 시스템</h1>
+        <form action="/process" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <input type="file" name="image" accept="image/*" required>
+            </div>
+            <div class="form-group">
+                <label for="filter_type">처리 옵션:</label>
+                <select name="filter_type" id="filter_type">
+                    <option value="grayscale">흑백 변환</option>
+                    <option value="edge">윤곽선 추출 (Edge Detection)</option>
+                    <option value="blur">블러 처리 (Blur)</option>
+                </select>
+            </div>
+            <button type="submit">변환 및 다운로드</button>
+        </form>
+    </div>
+</body>
+</html>
