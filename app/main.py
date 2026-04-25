@@ -1,4 +1,4 @@
-from app import app
+from app.app import app
 
 if __name__ == '__main__':
     # 디버그 모드는 로컬에서만 켜고, 배포 환경에서는 끌 수 있게 세팅
