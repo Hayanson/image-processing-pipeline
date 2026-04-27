@@ -19,4 +19,6 @@ ENV FLASK_RUN_HOST=0.0.0.0
 EXPOSE 5000
 
 # 도커 컨테이너가 켜질 때 실행할 명령어
-CMD ["flask", "run"]
+# 기존 코드: CMD ["flask", "run"]
+# 변경 후:
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app.app:app"]
