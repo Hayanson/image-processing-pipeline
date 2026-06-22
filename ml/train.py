@@ -5,35 +5,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 import mlflow
 import mlflow.sklearn
+from mlflow.client import MlflowClient
 
-# config.py가 최상단에 있으므로 import
-from app.config import MLFLOW_TRACKING_URI, EXPERIMENT_NAME
+# ... (상단 설정 및 데이터 로드 부분은 기존과 동일) ...
 
-# 1. 오류 방지를 위한 절대 경로 설정 (PDF 3p 반영)
-BASE_DIR = os.path.dirname(__file__) # 현재 폴더(ml)의 경로
-DATA_DIR = os.path.join(BASE_DIR, "data")
-TRAIN_DATA_PATH = os.path.join(DATA_DIR, "train_data.csv")
-TEST_DATA_PATH = os.path.join(DATA_DIR, "test_data.csv")
+# 최고 성능을 추적할 변수 준비
+best_acc = 0.0
+best_model_version = None
 
-train_df = pd.read_csv(TRAIN_DATA_PATH)
-test_df = pd.read_csv(TEST_DATA_PATH)
-
-X_train = train_df[["brightness", "contrast", "edge_density"]]
-y_train = train_df["style"]
-X_test = test_df[["brightness", "contrast", "edge_density"]]
-y_test = test_df["style"]
-
-# 2. MLflow 설정 (config.py에서 불러옴)
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-mlflow.set_experiment(EXPERIMENT_NAME)
-
-# 3. 비교할 여러 모델 정의 (PDF 8p 반영)
-models = {
-    "RandomForest": RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42),
-    "LogisticRegression": LogisticRegression(max_iter=200)
-}
-
-# 4. 반복문을 돌며 각각의 모델을 학습하고 MLflow에 기록
 for model_name, model in models.items():
     with mlflow.start_run(run_name=model_name):
         mlflow.log_param("model_type", model_name)
@@ -47,9 +26,25 @@ for model_name, model in models.items():
         mlflow.log_artifact(TRAIN_DATA_PATH, artifact_path="data")
         mlflow.log_artifact(TEST_DATA_PATH, artifact_path="data")
 
-        mlflow.sklearn.log_model(
+        model_info = mlflow.sklearn.log_model(
             sk_model=model,
             artifact_path="model",
             registered_model_name="style-model"
         )
-        print(f"[{model_name}] 모델 학습 및 MLflow 등록 완료! 정확도: {acc:.4f}")
+        
+        # 현재 모델의 정확도가 기존 최고 정확도보다 높으면 챔피언 후보 갱신
+        if acc > best_acc:
+            best_acc = acc
+            best_model_version = model_info.registered_model_version
+            
+        print(f"[{model_name}] 모델 학습 완료! 정확도: {acc:.4f}")
+
+# 반복문이 모두 끝나고 나면, 가장 성능이 좋았던 버전에만 champion 부여
+client = MlflowClient()
+client.set_registered_model_alias(
+    name="style-model",
+    alias="champion",
+    version=best_model_version
+)
+
+print(f"최종 챔피언 지정 완료! (버전: {best_model_version}, 정확도: {best_acc:.4f})")
