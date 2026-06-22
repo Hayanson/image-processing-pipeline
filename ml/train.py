@@ -15,10 +15,10 @@ train_df = pd.read_csv(TRAIN_DATA_PATH)
 test_df = pd.read_csv(TEST_DATA_PATH)
 
 # 특성(X)과 정답(y) 분리 (정답 컬럼명이 'label'인 경우)
-X_train = train_df.drop("label", axis=1)
-y_train = train_df["label"]
-X_test = test_df.drop("label", axis=1)
-y_test = test_df["label"]
+X_train = train_df.drop("style", axis=1)
+y_train = train_df["style"]
+X_test = test_df.drop("style", axis=1)
+y_test = test_df["style"]
 
 # 2. 학습할 모델 딕셔너리 정의 (에러가 났던 부분)
 models = {
