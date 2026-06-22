@@ -1,6 +1,6 @@
 import logging
 import mlflow.sklearn
-from config import MLFLOW_TRACKING_URI, MODEL_URI
+from app.config import MLFLOW_TRACKING_URI, MODEL_URI
 
 logger = logging.getLogger("style_classifier")
 
