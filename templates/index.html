@@ -2,31 +2,128 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>AI 이미지 전처리 파이프라인</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이미지 스타일 분류 및 필터 시스템</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; }
-        .container { background: white; padding: 40px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .form-group { margin: 20px 0; }
-        button { background-color: #4CAF50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .result-container {
+            margin-top: 30px;
+            display: none;
+            border-top: 2px solid #ccc;
+            padding-top: 20px;
+        }
+        .model-card {
+            background-color: #f4f6f9;
+            border-left: 5px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .image-preview {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>이미지 처리 시스템</h1>
-        <form action="/process" method="post" enctype="multipart/form-data">
-            <div class="form-group">
-                <input type="file" name="image" accept="image/*" required>
-            </div>
-            <div class="form-group">
-                <label for="filter_type">처리 옵션:</label>
-                <select name="filter_type" id="filter_type">
-                    <option value="grayscale">흑백 변환</option>
-                    <option value="edge">윤곽선 추출 (Edge Detection)</option>
-                    <option value="blur">블러 처리 (Blur)</option>
-                </select>
-            </div>
-            <button type="submit">변환 및 다운로드</button>
-        </form>
+
+    <h1>이미지 필터 및 스타일 분류기</h1>
+    
+    <form id="uploadForm">
+        <div class="form-group">
+            <label Skinner for="imageInput"><strong>이미지 업로드:</strong></label><br>
+            <input type="file" id="imageInput" name="image" accept="image/*" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="filterType"><strong>필터 선택:</strong></label><br>
+            <select id="filterType" name="filter_type">
+                <option value="grayscale">Grayscale (흑백)</option>
+                <option value="edge">Edge (윤곽선)</option>
+                <option value="blur">Blur (블러)</option>
+                <option value="crash">Crash (의도적 장애 테스트)</option>
+            </select>
+        </div>
+        
+        <button type="submit">이미지 전송 및 분석</button>
+    </form>
+
+    <div id="resultContainer" class="result-container">
+        <h2>분석 및 변환 결과</h2>
+        
+        <div class="model-card">
+            <h3>🤖 MLflow 모델 추론</h3>
+            <p><strong>예측 스타일 (Prediction):</strong> <span id="textPrediction">-</span></p>
+            <p><strong>신뢰도 (Confidence Score):</strong> <span id="textScore">-</span></p>
+        </div>
+        
+        <div>
+            <h3>🖼️ 필터 적용 이미지</h3>
+            <img id="outputImage" class="image-preview" alt="변환된 이미지 결과">
+        </div>
     </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const imageInput = document.getElementById('imageInput');
+            const filterType = document.getElementById('filterType').value;
+            
+            if (imageInput.files.length === 0) {
+                alert('이미지를 선택해주세요.');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', imageInput.files[0]);
+            formData.append('filter_type', filterType);
+            
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    alert(`서버 오류 발생: ${errorText}`);
+                    return;
+                }
+                
+                // 1. 응답 헤더에서 ML 추론 결과값 추출
+                const prediction = response.headers.get('X-ML-Prediction');
+                const score = response.headers.get('X-ML-Score');
+                
+                // 2. 응답 본문에서 이미지 바이너리(Blob) 데이터 추출
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // 3. 화면에 데이터 반영
+                document.getElementById('textPrediction').innerText = prediction || '로드 실패';
+                document.getElementById('textScore').innerText = score || '0.0000';
+                document.getElementById('outputImage').src = imageUrl;
+                
+                // 결과 영역 표시
+                document.getElementById('resultContainer').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('요청 처리 중 오류가 발생했습니다.');
+            }
+        });
+    </script>
 </body>
 </html>

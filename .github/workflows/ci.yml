@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    # 참고: actions/checkout은 깃허브 액션의 공식 플러그인 이름이라 우리가 안 쓰기로 한 명령어와는 무관해.
     - name: 저장소 코드 불러오기
       uses: actions/checkout@v4
       
@@ -25,12 +24,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-# ... (기존 설정) ...
+    # 1. 테스트 실행 전에 가상 환경에서 데이터를 만들고 모델을 학습시켜 mlflow.db를 생성함
+    - name: Train Model for Testing
+      run: |
+        python -m ml.create_data
+        python -m ml.train
+      env:
+        MLFLOW_URL: "sqlite:///mlflow.db"
+
+    # 2. 기존 테스트 단계에 모델 로드와 깃허브 이슈 생성을 위한 환경 변수 주입
     - name: Run Tests with pytest
       run: |
         python -m pytest tests/
+      env:
+        GH_REPO: ${{ secrets.GH_REPO }}
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        MLFLOW_URL: "sqlite:///mlflow.db"
 
-    # 아래 3줄 추가
     - name: Build Docker Image
       run: |
         docker build -t flask-image-app .
