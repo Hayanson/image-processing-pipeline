@@ -1,0 +1,39 @@
+name: Docker Verify
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+jobs:
+  docker-verify:
+    # CI 워크플로우가 성공(success)했을 때만 도커 검증을 실행
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Build Docker Image
+      run: |
+        echo "Docker 빌드 테스트를 시작합니다."
+        docker build -t style-classifier-test .
+
+    - name: Run container
+      run: |
+        # 백그라운드(-d)에서 컨테이너 실행 및 포트 5000 매핑
+        docker run -d --name style_classifier_ci \
+          -p 5000:5000 \
+          style-classifier-test
+
+    - name: Check container is running
+      run: |
+        # 컨테이너가 정상적으로 떠 있는지 확인
+        sleep 3
+        docker ps | grep style_classifier_ci
+
+    - name: Cleanup
+      if: always()
+      run: docker rm -f style_classifier_ci || true

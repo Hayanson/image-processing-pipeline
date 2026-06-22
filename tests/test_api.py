@@ -57,3 +57,41 @@ def test_process_invalid_filter_type(client):
     
     # processor.py 구현에 따라 200(기본 필터 적용) 또는 400(에러)인지 맞춰서 assert 작동 (500 에러로 뻗으면 안 됨)
     assert response.status_code == 400
+
+def test_process_valid_image_with_ml_headers(client):
+    """정상적인 이미지를 전송했을 때 200 반환 및 ML 예측 결과 헤더가 포함되는지 확인"""
+    # 1. 테스트용 정상 이미지 생성
+    img = Image.new('RGB', (10, 10), color='white')
+    img_io = io.BytesIO()
+    img.save(img_io, format='PNG')
+    valid_png_bytes = img_io.getvalue()
+    
+    # 2. 정상 필터(grayscale)로 데이터 전송
+    data = {
+        'image': (io.BytesIO(valid_png_bytes), 'test.png'),
+        'filter_type': 'grayscale'
+    }
+    response = client.post('/process', data=data, content_type='multipart/form-data')
+    
+    # 3. 검증: 정상 처리(200) 및 이미지 반환 확인
+    assert response.status_code == 200
+    assert response.mimetype == 'image/png'
+    
+    # 4. 검증: MLOps 추론 결과 헤더가 존재하는지 확인
+    assert 'X-ML-Prediction' in response.headers
+    assert 'X-ML-Score' in response.headers
+
+def test_process_crash_filter(client):
+    """의도적 장애(crash) 필터를 전송했을 때 500 에러가 발생하는지 확인 (이슈 생성 트리거용)"""
+    img = Image.new('RGB', (1, 1), color='black')
+    img_io = io.BytesIO()
+    img.save(img_io, format='PNG')
+    
+    data = {
+        'image': (io.BytesIO(img_io.getvalue()), 'test.png'),
+        'filter_type': 'crash'
+    }
+    response = client.post('/process', data=data, content_type='multipart/form-data')
+    
+    # crash 입력 시 서버에서 의도적으로 RuntimeError를 발생시키고 500을 반환해야 함
+    assert response.status_code == 500

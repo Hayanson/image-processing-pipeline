@@ -2,12 +2,12 @@ import io
 import logging
 import traceback
 import numpy as np
-import mlflow.sklearn
 from flask import Flask, render_template, request, send_file
 from PIL import Image, ImageFilter, UnidentifiedImageError
 
 from app.processor import apply_image_filter 
 from app.issue import create_github_issue
+from app.model_loader import load_champion_model  # 분리된 모듈 임포트
 
 # 1) 로그 포맷: 시간 + 레벨 + 메시지
 logging.basicConfig(
@@ -18,18 +18,8 @@ logger = logging.getLogger("style_classifier")
 
 app = Flask(__name__, template_folder='../templates')
 
-# MLflow 모델 세팅
-MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
-MODEL_URI = "models:/style-model@champion"
-
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-
-try:
-    ml_model = mlflow.sklearn.load_model(MODEL_URI)
-    logger.info("MLflow 챔피언 모델 로드 성공")
-except Exception as e:
-    logger.error(f"모델 로드 실패: {e}")
-    ml_model = None
+# 앱 시작 시 모델 단 1회 로드
+ml_model = load_champion_model()
 
 def extract_features(img):
     gray_img = img.convert('L')
