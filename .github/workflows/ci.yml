@@ -27,7 +27,6 @@ jobs:
     # 1. 테스트 실행 전에 가상 환경에서 데이터를 만들고 모델을 학습시켜 mlflow.db를 생성함
     - name: Train Model for Testing
       run: |
-        python -m ml.create_data
         python -m ml.train
       env:
         MLFLOW_URL: "sqlite:///mlflow.db"
