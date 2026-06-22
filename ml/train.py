@@ -7,6 +7,9 @@ import mlflow
 import mlflow.sklearn
 from mlflow.client import MlflowClient
 
+from app.config import MLFLOW_TRACKING_URI
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+
 # 1. 데이터 경로 설정 및 로드
 TRAIN_DATA_PATH = "ml/data/train_data.csv"
 TEST_DATA_PATH = "ml/data/test_data.csv"
