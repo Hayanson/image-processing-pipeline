@@ -1,5 +1,17 @@
 import io
 from PIL import Image
+import pytest
+from unittest.mock import MagicMock
+import mlflow
+
+@pytest.fixture(autouse=True)
+def mock_mlflow_for_api(monkeypatch):
+    """API 테스트 중 발생하는 외부 MLflow 서버 통신을 차단합니다."""
+    mock_model = MagicMock()
+    mock_model.predict.return_value = ["style_a"]
+    
+    monkeypatch.setattr("mlflow.sklearn.load_model", lambda uri: mock_model)
+    monkeypatch.setattr("mlflow.tracking.MlflowClient", lambda: MagicMock())
 
 def test_index_page(client):
     """메인 페이지가 정상적으로 로드되는지 확인"""

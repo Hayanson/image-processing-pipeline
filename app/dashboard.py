@@ -6,6 +6,28 @@ import streamlit as st
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 
+from pathlib import Path
+
+# 현재 이 파일(dashboard.py)의 위치를 기준으로 프로젝트 루트를 찾음
+# 구조: 프로젝트루트/app/dashboard.py -> 부모의 부모가 루트가 아님, 부모가 루트임.
+# 네 구조가 project/app/dashboard.py 라면 부모 폴더(project/)를 가리켜야 함
+BASE_DIR = Path(__file__).resolve().parent.parent 
+env_path = BASE_DIR / '.env'
+
+# .env 파일이 존재하는지 확인 (디버깅용)
+if not env_path.exists():
+    print(f"DEBUG: .env 파일을 찾을 수 없음: {env_path}")
+else:
+    load_dotenv(dotenv_path=env_path)
+
+# 환경 변수 로드
+GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME")
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+
+# 환경 변수가 비어있는지 확인
+if GOOGLE_SERVICE_ACCOUNT_JSON is None:
+    raise ValueError("GOOGLE_SERVICE_ACCOUNT_JSON 환경 변수가 None입니다. .env 파일이나 환경 변수 설정을 다시 확인하세요.")
+
 # 프로젝트 루트의 .env 경로 지정
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
 
