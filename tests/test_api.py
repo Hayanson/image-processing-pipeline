@@ -24,9 +24,12 @@ def client():
 @pytest.fixture(autouse=True)
 def isolate_external_dependencies(monkeypatch):
     """외부 인프라(MLflow, 구글 시트) 통신을 완벽히 차단하는 가짜(Mock) 객체 주입"""
-    # 1. MLflow 통신 차단
+    # 1. MLflow 통신 차단 및 모델 모킹
     mock_model = MagicMock()
     mock_model.predict.return_value = ["style_a"]
+    # 추가: predict_proba 호출 시 app.py가 에러를 내지 않도록 가짜 확률 리스트 반환
+    mock_model.predict_proba.return_value = [[0.1, 0.9]]
+    
     monkeypatch.setattr("mlflow.sklearn.load_model", lambda uri: mock_model)
     monkeypatch.setattr("mlflow.tracking.MlflowClient", lambda: MagicMock())
     
@@ -40,7 +43,7 @@ def isolate_external_dependencies(monkeypatch):
         pass
 
 def test_process_valid_image_with_ml_headers(client):
-    # 1. 찐짜 이미지(JPEG) 데이터를 메모리에 생성
+    # 1. 진짜 이미지(JPEG) 데이터를 메모리에 생성
     img_io = io.BytesIO()
     Image.new('RGB', (10, 10), color='black').save(img_io, 'JPEG')
     img_bytes = img_io.getvalue()
