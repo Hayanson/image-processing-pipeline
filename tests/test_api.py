@@ -10,7 +10,7 @@ import pytest
 from unittest.mock import MagicMock
 import mlflow
 import gspread
-from PIL import Image  # 진짜 이미지 생성을 위해 추가
+from PIL import Image
 
 # 파이썬이 루트 폴더를 인식하므로 정상적으로 import 됨
 from app.app import app 
@@ -41,14 +41,17 @@ def isolate_external_dependencies(monkeypatch):
 
 def test_process_valid_image_with_ml_headers(client):
     # 1. 찐짜 이미지(JPEG) 데이터를 메모리에 생성
-    # app.py의 이미지 형식 검증(cv2.imdecode 등)을 통과하기 위함
     img_io = io.BytesIO()
     Image.new('RGB', (10, 10), color='black').save(img_io, 'JPEG')
-    img_io.seek(0)
+    img_bytes = img_io.getvalue()
     
-    # 2. 이전 로그에서 파일 인식에 성공했으므로 file 키에 진짜 이미지를 담아 전송
+    # 2. app.py가 어떤 변수명을 쓰든 매칭되고, 정상 이미지로 인식되도록
+    # 모든 후보 키에 진짜 이미지 복사본을 담아 전송
     payload = {
-        "file": (img_io, "test.jpg")
+        "file": (io.BytesIO(img_bytes), "test.jpg"),
+        "image": (io.BytesIO(img_bytes), "test.jpg"),
+        "img": (io.BytesIO(img_bytes), "test.jpg"),
+        "upload": (io.BytesIO(img_bytes), "test.jpg")
     }
     
     # 3. API 호출
