@@ -1,15 +1,15 @@
+import sys
+import io
 import pytest
 from unittest.mock import MagicMock
 import mlflow
 import gspread
-import io
 
-# 네 Flask 앱 가져오기
+# 이제 파이썬이 루트 폴더를 인식하므로 정상적으로 import 됨
 from app.app import app 
 
 @pytest.fixture
 def client():
-    # Flask 내장 테스트 클라이언트 설정
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client
@@ -31,11 +31,12 @@ def isolate_external_dependencies(monkeypatch):
         monkeypatch.setattr("google.oauth2.service_account.Credentials.from_service_account_info", lambda info, scopes=None: MagicMock())
     except Exception:
         pass
+
 def test_process_valid_image_with_ml_headers(client):
-    # 1. Flask가 파일로 인식할 수 있도록 io.BytesIO 사용
+    # 1. Flask가 파일로 인식할 수 있도록 io.BytesIO 필수 사용
     dummy_image = (io.BytesIO(b"dummy_bytes"), "test.jpg")
     
-    # 2. API 호출 (content_type 추가)
+    # 2. API 호출 시 multipart/form-data 선언
     response = client.post(
         "/process",
         data={"file": dummy_image},
@@ -43,25 +44,8 @@ def test_process_valid_image_with_ml_headers(client):
         headers={"X-ML-Header": "test_value"}
     )
     
-    # 3. 200이 아닐 경우(400 등), 구체적인 이유를 터미널에 출력
+    # 3. 에러 발생 시 로그 출력
     if response.status_code != 200:
         pytest.fail(f"API 에러 발생! 상태 코드: {response.status_code}, 상세 로그: {response.data.decode('utf-8')}")
-        
-    assert response.status_code == 200
-    
-def test_process_valid_image_with_ml_headers(client):
-    # 1. 테스트용 더미 파일 설정 (Flask 호환 방식)
-    dummy_image = (b"dummy_bytes", "test.jpg")
-    
-    # 2. API 호출
-    response = client.post(
-        "/process",
-        data={"file": dummy_image},
-        headers={"X-ML-Header": "test_value"}
-    )
-    
-    # 3. 500 에러 발생 시 로그 출력
-    if response.status_code == 500:
-        pytest.fail(f"API 500 에러 발생! 상세 로그: {response.data.decode('utf-8')}")
         
     assert response.status_code == 200
