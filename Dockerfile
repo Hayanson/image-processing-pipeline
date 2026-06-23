@@ -11,6 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 프로젝트 코드 전체를 컨테이너 안으로 복사
 COPY . .
 
+# === 새로 추가: 코드가 모두 복사된 후, 서버를 켜기 전에 모델 학습부터 진행 ===
+RUN python -m ml.train
+
 # Flask 환경 변수 설정
 ENV FLASK_APP=app/app.py
 ENV FLASK_RUN_HOST=0.0.0.0
@@ -19,6 +22,4 @@ ENV FLASK_RUN_HOST=0.0.0.0
 EXPOSE 5000
 
 # 도커 컨테이너가 켜질 때 실행할 명령어
-# 기존 코드: CMD ["flask", "run"]
-# 변경 후:
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app.app:app"]
