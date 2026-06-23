@@ -10,6 +10,7 @@ import pytest
 from unittest.mock import MagicMock
 import mlflow
 import gspread
+from PIL import Image  # 진짜 이미지 생성을 위해 추가
 
 # 파이썬이 루트 폴더를 인식하므로 정상적으로 import 됨
 from app.app import app 
@@ -39,22 +40,25 @@ def isolate_external_dependencies(monkeypatch):
         pass
 
 def test_process_valid_image_with_ml_headers(client):
-    # 1. app.py가 어떤 변수명을 쓰든 매칭되도록 여러 개의 독립된 스트림 생성
+    # 1. 찐짜 이미지(JPEG) 데이터를 메모리에 생성
+    # app.py의 이미지 형식 검증(cv2.imdecode 등)을 통과하기 위함
+    img_io = io.BytesIO()
+    Image.new('RGB', (10, 10), color='black').save(img_io, 'JPEG')
+    img_io.seek(0)
+    
+    # 2. 이전 로그에서 파일 인식에 성공했으므로 file 키에 진짜 이미지를 담아 전송
     payload = {
-        "file": (io.BytesIO(b"dummy_bytes"), "test.jpg"),
-        "image": (io.BytesIO(b"dummy_bytes"), "test.jpg"),
-        "img": (io.BytesIO(b"dummy_bytes"), "test.jpg"),
-        "upload": (io.BytesIO(b"dummy_bytes"), "test.jpg")
+        "file": (img_io, "test.jpg")
     }
     
-    # 2. API 호출 (모든 변수명 후보군을 담은 payload 전송)
+    # 3. API 호출
     response = client.post(
         "/process",
         data=payload,
         headers={"X-ML-Header": "test_value"}
     )
     
-    # 3. 에러 발생 시 로그 출력
+    # 4. 에러 발생 시 로그 출력
     if response.status_code != 200:
         pytest.fail(f"API 에러 발생! 상태 코드: {response.status_code}, 상세 로그: {response.data.decode('utf-8')}")
         
