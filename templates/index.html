@@ -2,128 +2,129 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>이미지 스타일 분류 및 필터 시스템</title>
+    <title>이미지 스타일 분류기</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .result-container {
-            margin-top: 30px;
-            display: none;
-            border-top: 2px solid #ccc;
-            padding-top: 20px;
-        }
-        .model-card {
-            background-color: #f4f6f9;
-            border-left: 5px solid #007bff;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .image-preview {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-top: 10px;
-        }
+        body { font-family: sans-serif; margin: 40px; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .result-box { margin-top: 20px; }
+        #outputImage { max-width: 100%; border: 1px solid #ddd; margin-top: 10px; display: none; }
+        .feedback-box { margin-top: 30px; padding-top: 20px; border-top: 2px dashed #eee; }
+        button { padding: 8px 15px; margin-right: 5px; cursor: pointer; }
+        #feedbackResult { color: #28a745; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h2>이미지 스타일 분류 및 필터 처리</h2>
+        
+        <form id="uploadForm" onsubmit="processImage(event)">
+            <input type="file" name="image" accept="image/*" required><br><br>
+            
+            <label for="filter_type">필터 선택:</label>
+            <select name="filter_type" id="filter_type">
+                <option value="grayscale">Grayscale</option>
+                <option value="edge">Edge Detection</option>
+                <option value="blur">Blur</option>
+            </select><br><br>
+            
+            <button type="submit">이미지 처리 시작</button>
+        </form>
 
-    <h1>이미지 필터 및 스타일 분류기</h1>
-    
-    <form id="uploadForm">
-        <div class="form-group">
-            <label Skinner for="imageInput"><strong>이미지 업로드:</strong></label><br>
-            <input type="file" id="imageInput" name="image" accept="image/*" required>
+        <div class="result-box">
+            <h3 id="result"></h3>
+            <img id="outputImage" alt="처리된 이미지">
         </div>
-        
-        <div class="form-group">
-            <label for="filterType"><strong>필터 선택:</strong></label><br>
-            <select id="filterType" name="filter_type">
-                <option value="grayscale">Grayscale (흑백)</option>
-                <option value="edge">Edge (윤곽선)</option>
-                <option value="blur">Blur (블러)</option>
-                <option value="crash">Crash (의도적 장애 테스트)</option>
-            </select>
-        </div>
-        
-        <button type="submit">이미지 전송 및 분석</button>
-    </form>
 
-    <div id="resultContainer" class="result-container">
-        <h2>분석 및 변환 결과</h2>
-        
-        <div class="model-card">
-            <h3>🤖 MLflow 모델 추론</h3>
-            <p><strong>예측 스타일 (Prediction):</strong> <span id="textPrediction">-</span></p>
-            <p><strong>신뢰도 (Confidence Score):</strong> <span id="textScore">-</span></p>
-        </div>
-        
-        <div>
-            <h3>🖼️ 필터 적용 이미지</h3>
-            <img id="outputImage" class="image-preview" alt="변환된 이미지 결과">
+        <div class="feedback-box">
+            <h3>예측 결과가 맞나요? 실제 정답을 알려주세요.</h3>
+            <button onclick="sendFeedback('Bright')">정답: Bright</button>
+            <button onclick="sendFeedback('Dark')">정답: Dark</button>
+            <button onclick="sendFeedback('Edgy')">정답: Edgy</button>
+            <p id="feedbackResult"></p>
         </div>
     </div>
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        let lastResult = null;
+
+        function processImage(event) {
+            event.preventDefault();
+            const formData = new FormData(document.getElementById('uploadForm'));
             
-            const imageInput = document.getElementById('imageInput');
-            const filterType = document.getElementById('filterType').value;
-            
-            if (imageInput.files.length === 0) {
-                alert('이미지를 선택해주세요.');
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('image', imageInput.files[0]);
-            formData.append('filter_type', filterType);
-            
-            try {
-                const response = await fetch('/process', {
-                    method: 'POST',
-                    body: formData
-                });
+            // 처리 중 메시지
+            document.getElementById("result").innerText = "처리 중입니다...";
+            document.getElementById("feedbackResult").innerText = "";
+            document.getElementById("outputImage").style.display = "none";
+
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('서버 에러');
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    alert(`서버 오류 발생: ${errorText}`);
-                    return;
-                }
-                
-                // 1. 응답 헤더에서 ML 추론 결과값 추출
+                // 백엔드에서 넘겨준 헤더 정보 추출
                 const prediction = response.headers.get('X-ML-Prediction');
                 const score = response.headers.get('X-ML-Score');
+                const servingModel = response.headers.get('X-ML-Serving-Model');
+                const filename = response.headers.get('X-Filename');
+
+                // 화면에는 예측 결과와 확신도만 노출 (servingModel은 숨김)
+                document.getElementById("result").innerText = `결과: ${prediction} (확신도: ${score})`;
+
+                // 피드백 전송을 위해 백그라운드 변수에 상태 저장
+                lastResult = {
+                    filename: filename,
+                    prediction: prediction,
+                    score: score,
+                    serving_model: servingModel
+                };
                 
-                // 2. 응답 본문에서 이미지 바이너리(Blob) 데이터 추출
-                const blob = await response.blob();
-                const imageUrl = URL.createObjectURL(blob);
-                
-                // 3. 화면에 데이터 반영
-                document.getElementById('textPrediction').innerText = prediction || '로드 실패';
-                document.getElementById('textScore').innerText = score || '0.0000';
-                document.getElementById('outputImage').src = imageUrl;
-                
-                // 결과 영역 표시
-                document.getElementById('resultContainer').style.display = 'block';
-                
-            } catch (error) {
-                console.error('Error:', error);
-                alert('요청 처리 중 오류가 발생했습니다.');
+                return response.blob();
+            })
+            .then(blob => {
+                // 처리된 이미지 화면에 렌더링
+                const url = URL.createObjectURL(blob);
+                const imgElement = document.getElementById('outputImage');
+                imgElement.src = url;
+                imgElement.style.display = "block";
+            })
+            .catch(error => {
+                document.getElementById("result").innerText = "처리 중 에러가 발생했습니다.";
+            });
+        }
+
+        function sendFeedback(correctLabel) {
+            if (!lastResult) {
+                document.getElementById("feedbackResult").innerText = "먼저 이미지를 처리해 주세요.";
+                document.getElementById("feedbackResult").style.color = "red";
+                return;
             }
-        });
+
+            fetch("/feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    filename: lastResult.filename,
+                    prediction: lastResult.prediction,
+                    correct_label: correctLabel,
+                    score: lastResult.score,
+                    serving_model: lastResult.serving_model
+                })
+            })
+            .then(res => {
+                if (!res.ok) throw new Error('피드백 저장 실패');
+                return res.json();
+            })
+            .then(data => {
+                document.getElementById("feedbackResult").innerText = "피드백 저장 완료: " + correctLabel;
+                document.getElementById("feedbackResult").style.color = "#28a745"; // 성공 초록색
+            })
+            .catch(() => {
+                document.getElementById("feedbackResult").innerText = "피드백 저장에 실패했습니다.";
+                document.getElementById("feedbackResult").style.color = "red"; // 실패 빨간색
+            });
+        }
     </script>
 </body>
 </html>
