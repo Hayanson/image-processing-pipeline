@@ -12,7 +12,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # === 새로 추가: 코드가 모두 복사된 후, 서버를 켜기 전에 모델 학습부터 진행 ===
-RUN python -m ml.train
 
 # Flask 환경 변수 설정
 ENV FLASK_APP=app/app.py
