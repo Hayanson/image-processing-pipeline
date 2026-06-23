@@ -11,5 +11,7 @@ CANARY_ENABLED = True
 CANARY_RATIO = 0.25  # 25%의 트래픽을 신규 모델(challenger)로 전송
 
 MODEL_NAME = "style-model"
+
 CHAMPION_MODEL_URI = f"models:/{MODEL_NAME}@champion"
 CHALLENGER_MODEL_URI = f"models:/{MODEL_NAME}@challenger"
+MODEL_URI = CHAMPION_MODEL_URI
