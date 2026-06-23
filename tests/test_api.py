@@ -1,11 +1,17 @@
 import sys
 import io
+from pathlib import Path
+
+# 현재 파일(tests)의 부모 폴더(프로젝트 루트)를 시스템 경로에 최우선으로 추가
+root_path = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(root_path))
+
 import pytest
 from unittest.mock import MagicMock
 import mlflow
 import gspread
 
-# 이제 파이썬이 루트 폴더를 인식하므로 정상적으로 import 됨
+# 파이썬이 루트 폴더를 인식하므로 정상적으로 import 됨
 from app.app import app 
 
 @pytest.fixture
@@ -36,11 +42,10 @@ def test_process_valid_image_with_ml_headers(client):
     # 1. Flask가 파일로 인식할 수 있도록 io.BytesIO 필수 사용
     dummy_image = (io.BytesIO(b"dummy_bytes"), "test.jpg")
     
-    # 2. API 호출 시 multipart/form-data 선언
+    # 2. API 호출 (content_type 명시적 지정 제거)
     response = client.post(
         "/process",
         data={"file": dummy_image},
-        content_type="multipart/form-data",
         headers={"X-ML-Header": "test_value"}
     )
     
