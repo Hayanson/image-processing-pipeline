@@ -9,6 +9,11 @@ from app.processor import apply_image_filter
 from app.issue import create_github_issue
 from app.model_loader import load_champion_model  # 분리된 모듈 임포트
 
+# === 추가된 부분: 설정값과 이슈 상태 업데이트 함수 임포트 ===
+from app.config import LOW_CONFIDENCE_THRESHOLD
+from app.retrain_issue import update_issue_state
+# ============================================================
+
 # 1) 로그 포맷: 시간 + 레벨 + 메시지
 logging.basicConfig(
     level=logging.INFO,
@@ -69,6 +74,16 @@ def process():
             prediction_result = f"{pred}"
             confidence = float(max(proba))
 
+            # === 추가된 부분: 예측 직후 모델 확신도 체크 및 이슈 생성 로직 ===
+            # extract_features가 반환한 2차원 배열에서 값을 꺼내어 딕셔너리로 매핑합니다.
+            input_features = {
+                "brightness": float(features[0][0]),
+                "contrast": float(features[0][1]),
+                "edge_density": float(features[0][2])
+            }
+            update_issue_state(input_features, prediction_result, confidence, LOW_CONFIDENCE_THRESHOLD)
+            # =================================================================
+
         processed_img = apply_image_filter(raw_img, filter_type)
         
         img_io = io.BytesIO()
@@ -92,7 +107,7 @@ def process():
         # (C) 디버깅 핵심: 에러 종류/메시지 + 스택트레이스 기록
         logger.exception(f"FAIL /process | error={type(e).__name__}: {e}")
         
-        # (D) GitHub Issue 자동 생성
+        # (D) GitHub Issue 자동 생성 (크래시 발생 시)
         tb = traceback.format_exc()
         title = f"[Prod Error] /process failed: {type(e).__name__}"
         body = (
