@@ -39,13 +39,18 @@ def isolate_external_dependencies(monkeypatch):
         pass
 
 def test_process_valid_image_with_ml_headers(client):
-    # 1. Flask가 파일로 인식할 수 있도록 io.BytesIO 필수 사용
-    dummy_image = (io.BytesIO(b"dummy_bytes"), "test.jpg")
+    # 1. app.py가 어떤 변수명을 쓰든 매칭되도록 여러 개의 독립된 스트림 생성
+    payload = {
+        "file": (io.BytesIO(b"dummy_bytes"), "test.jpg"),
+        "image": (io.BytesIO(b"dummy_bytes"), "test.jpg"),
+        "img": (io.BytesIO(b"dummy_bytes"), "test.jpg"),
+        "upload": (io.BytesIO(b"dummy_bytes"), "test.jpg")
+    }
     
-    # 2. API 호출 (content_type 명시적 지정 제거)
+    # 2. API 호출 (모든 변수명 후보군을 담은 payload 전송)
     response = client.post(
         "/process",
-        data={"file": dummy_image},
+        data=payload,
         headers={"X-ML-Header": "test_value"}
     )
     
