@@ -2,7 +2,7 @@
 from datetime import datetime
 import logging
 from app.config import LOW_CONFIDENCE_THRESHOLD
-from issue import create_github_issue 
+from app.issue import create_github_issue 
 
 logger = logging.getLogger(__name__)
 
